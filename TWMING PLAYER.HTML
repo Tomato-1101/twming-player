@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <title>Twitter動画プレイヤー</title>
+    <style>
+        body {
+            font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f7f9fa;
+            color: #333;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #1DA1F2;
+            margin-top: 0;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 15px;
+        }
+        
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #urlInput {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 50px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        
+        #urlInput:focus {
+            border-color: #1DA1F2;
+            outline: none;
+        }
+        
+        #loadButton {
+            padding: 12px 24px;
+            background-color: #1DA1F2;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        
+        #loadButton:hover {
+            background-color: #0c85d0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(29, 161, 242, 0.3);
+        }
+        
+        #loadButton:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(29, 161, 242, 0.3);
+        }
+        
+        .video-wrapper {
+            display: none;
+        }
+        
+        .video-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            background-color: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            aspect-ratio: 16 / 9;
+        }
+        
+        #videoPlayer {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+        }
+        
+        /* YouTube-style controls */
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            padding-top: 30px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .video-container:hover .controls {
+            opacity: 1;
+        }
+        
+        .play-button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin-right: 15px;
+            font-size: 24px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .play-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .progress-container {
+            flex-grow: 1;
+            height: 4px;
+            background-color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            margin: 0 15px;
+            border-radius: 4px;
+            position: relative;
+            overflow: visible;
+        }
+        
+        .progress-container:hover {
+            height: 6px;
+        }
+        
+        .progress-container:hover .progress-bar {
+            height: 6px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #FF0000;
+            width: 0;
+            border-radius: 4px;
+            position: relative;
+        }
+        
+        .buffer-bar {
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.4);
+            width: 0;
+            border-radius: 4px;
+            position: absolute;
+            top: 0;
+        }
+        
+        .progress-hover {
+            position: absolute;
+            top: -35px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: none;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+        
+        .time-display {
+            color: white;
+            margin-right: 15px;
+            font-size: 14px;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .volume-container {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+            position: relative;
+        }
+        
+        .volume-button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin-right: 8px;
+            font-size: 20px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .volume-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .volume-slider {
+            width: 0;
+            -webkit-appearance: none;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            transition: width 0.2s;
+            opacity: 0;
+        }
+        
+        .volume-container:hover .volume-slider {
+            width: 80px;
+            opacity: 1;
+        }
+        
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .settings-button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+            margin-right: 15px;
+        }
+        
+        .settings-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .fullscreen-button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .fullscreen-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .settings-menu {
+            position: absolute;
+            bottom: 60px;
+            right: 15px;
+            background-color: rgba(28, 28, 28, 0.9);
+            border-radius: 4px;
+            padding: 10px 0;
+            display: none;
+            width: 200px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .settings-menu.active {
+            display: block;
+        }
+        
+        .settings-item {
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.2s;
+        }
+        
+        .settings-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-weight: bold;
+            padding: 15px;
+            background-color: #fdf2f0;
+            border-left: 4px solid #e74c3c;
+            margin-top: 10px;
+            display: none;
+            border-radius: 8px;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .loading-animation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            display: none;
+        }
+        
+        .loading-animation div {
+            box-sizing: border-box;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 8px solid transparent;
+            border-top-color: #FF0000;
+            border-radius: 50%;
+            animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        }
+        
+        .loading-animation div:nth-child(1) {
+            animation-delay: -0.45s;
+        }
+        
+        .loading-animation div:nth-child(2) {
+            animation-delay: -0.3s;
+        }
+        
+        .loading-animation div:nth-child(3) {
+            animation-delay: -0.15s;
+        }
+        
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .big-play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        
+        .big-play-button:hover {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Twitter動画プレイヤー</h1>
+        
+        <div class="input-container">
+            <input type="text" id="urlInput" placeholder="video.twimg.comのURLを入力してください" />
+            <button id="loadButton">読み込む</button>
+        </div>
+        
+        <div id="errorMessage" class="error-message"></div>
+        
+        <div id="videoWrapper" class="video-wrapper">
+            <div class="video-title" id="videoTitle">Twitter動画</div>
+            <div class="video-container" id="videoContainer">
+                <video id="videoPlayer"></video>
+                
+                <div class="big-play-button" id="bigPlayButton">
+                    <i class="fas fa-play" style="color: white; font-size: 24px;"></i>
+                </div>
+                
+                <div class="loading-animation" id="loadingAnimation">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+                
+                <div class="controls" id="videoControls">
+                    <button class="play-button" id="playPauseButton">
+                        <i class="fas fa-play" id="playIcon"></i>
+                    </button>
+                    
+                    <div class="progress-container" id="progressContainer">
+                        <div class="buffer-bar" id="bufferBar"></div>
+                        <div class="progress-bar" id="progressBar"></div>
+                        <div class="progress-hover" id="progressHover"></div>
+                    </div>
+                    
+                    <div class="time-display" id="timeDisplay">0:00 / 0:00</div>
+                    
+                    <div class="volume-container">
+                        <button class="volume-button" id="volumeButton">
+                            <i class="fas fa-volume-up" id="volumeIcon"></i>
+                        </button>
+                        <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+                    </div>
+                    
+                    <button class="settings-button" id="settingsButton">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    
+                    <button class="fullscreen-button" id="fullscreenButton">
+                        <i class="fas fa-expand" id="fullscreenIcon"></i>
+                    </button>
+                    
+                    <div class="settings-menu" id="settingsMenu">
+                        <div class="settings-item" id="playbackSpeed">
+                            <span>再生速度</span>
+                            <span>通常</span>
+                        </div>
+                        <div class="settings-item" id="loopVideo">
+                            <span>ループ再生</span>
+                            <span>オフ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM要素
+            const urlInput = document.getElementById('urlInput');
+            const loadButton = document.getElementById('loadButton');
+            const videoWrapper = document.getElementById('videoWrapper');
+            const videoPlayer = document.getElementById('videoPlayer');
+            const videoContainer = document.getElementById('videoContainer');
+            const errorMessage = document.getElementById('errorMessage');
+            const loadingAnimation = document.getElementById('loadingAnimation');
+            const bigPlayButton = document.getElementById('bigPlayButton');
+            
+            // プレイヤー操作要素
+            const playPauseButton = document.getElementById('playPauseButton');
+            const playIcon = document.getElementById('playIcon');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const bufferBar = document.getElementById('bufferBar');
+            const progressHover = document.getElementById('progressHover');
+            const timeDisplay = document.getElementById('timeDisplay');
+            const volumeButton = document.getElementById('volumeButton');
+            const volumeIcon = document.getElementById('volumeIcon');
+            const volumeSlider = document.getElementById('volumeSlider');
+            const settingsButton = document.getElementById('settingsButton');
+            const settingsMenu = document.getElementById('settingsMenu');
+            const fullscreenButton = document.getElementById('fullscreenButton');
+            const fullscreenIcon = document.getElementById('fullscreenIcon');
+            const playbackSpeed = document.getElementById('playbackSpeed');
+            const loopVideo = document.getElementById('loopVideo');
+            
+            // 再生速度オプション
+            const speedOptions = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+            let currentSpeedIndex = 3; // デフォルトは1.0x
+            
+            // Twitter動画の検証と読み込み
+            loadButton.addEventListener('click', loadVideo);
+            urlInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    loadVideo();
+                }
+            });
+            
+            function loadVideo() {
+                let url = urlInput.value.trim();
+                
+                // URLが空の場合
+                if (!url) {
+                    showError('URLを入力してください');
+                    return;
+                }
+                
+                // video.twimg.comを含むURLかチェック
+                if (!url.includes('video.twimg.com')) {
+                    showError('有効なTwitter動画URLを入力してください');
+                    return;
+                }
+                
+                // ttps://で始まる場合はhttps://に修正
+                if (url.startsWith('ttps://')) {
+                    url = 'h' + url;
+                    console.log('URLを修正しました:', url);
+                }
+                
+                // エラーメッセージをクリア
+                hideError();
+                
+                // 読み込みアニメーションを表示
+                loadingAnimation.style.display = 'block';
+                
+                // ビデオプレイヤーを表示
+                videoWrapper.style.display = 'block';
+                
+                // ビデオを設定
+                videoPlayer.src = url;
+                videoPlayer.load();
+                
+                // メタデータが読み込まれたら準備完了
+                videoPlayer.addEventListener('loadedmetadata', function() {
+                    loadingAnimation.style.display = 'none';
+                    bigPlayButton.style.display = 'flex';
+                });
+                
+                // エラーハンドリング
+                videoPlayer.addEventListener('error', function() {
+                    loadingAnimation.style.display = 'none';
+                    showError('動画を読み込めませんでした。URLを確認してください。');
+                });
+            }
+            
+            // エラーメッセージの表示と非表示
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+            }
+            
+            function hideError() {
+                errorMessage.style.display = 'none';
+            }
+            
+            // 再生・一時停止機能
+            function togglePlay() {
+                if (videoPlayer.paused || videoPlayer.ended) {
+                    videoPlayer.play();
+                    playIcon.className = 'fas fa-pause';
+                    bigPlayButton.style.display = 'none';
+                } else {
+                    videoPlayer.pause();
+                    playIcon.className = 'fas fa-play';
+                    bigPlayButton.style.display = 'flex';
+                }
+            }
+            
+            playPauseButton.addEventListener('click', togglePlay);
+            bigPlayButton.addEventListener('click', togglePlay);
+            videoPlayer.addEventListener('click', togglePlay);
+            
+            // ビデオ再生状態の変更時にコントロールを更新
+            videoPlayer.addEventListener('play', function() {
+                playIcon.className = 'fas fa-pause';
+                bigPlayButton.style.display = 'none';
+            });
+            
+            videoPlayer.addEventListener('pause', function() {
+                playIcon.className = 'fas fa-play';
+                bigPlayButton.style.display = 'flex';
+            });
+            
+            videoPlayer.addEventListener('ended', function() {
+                playIcon.className = 'fas fa-play';
+                bigPlayButton.style.display = 'flex';
+                
+                // ループ設定がオンの場合は再生を再開
+                if (videoPlayer.loop) {
+                    videoPlayer.play();
+                }
+            });
+            
+            // 進行状況の更新
+            videoPlayer.addEventListener('timeupdate', function() {
+                const currentTime = videoPlayer.currentTime;
+                const duration = videoPlayer.duration || 0;
+                
+                // 進行バーを更新
+                const progressPercentage = (currentTime / duration) * 100;
+                progressBar.style.width = progressPercentage + '%';
+                
+                // 時間表示を更新
+                timeDisplay.textContent = formatTime(currentTime) + ' / ' + formatTime(duration);
+            });
+            
+            // バッファリング状態の更新
+            videoPlayer.addEventListener('progress', function() {
+                if (videoPlayer.buffered.length > 0) {
+                    const bufferedEnd = videoPlayer.buffered.end(videoPlayer.buffered.length - 1);
+                    const duration = videoPlayer.duration;
+                    const bufferPercentage = (bufferedEnd / duration) * 100;
+                    bufferBar.style.width = bufferPercentage + '%';
+                }
+            });
+            
+            // プログレスバーでのシーク機能
+            progressContainer.addEventListener('click', function(e) {
+                const rect = progressContainer.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                videoPlayer.currentTime = pos * videoPlayer.duration;
+            });
+            
+            // プログレスバーのホバー表示
+            progressContainer.addEventListener('mousemove', function(e) {
+                const rect = progressContainer.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                const timeAtPosition = pos * videoPlayer.duration;
+                
+                progressHover.textContent = formatTime(timeAtPosition);
+                progressHover.style.left = e.clientX - rect.left + 'px';
+                progressHover.style.display = 'block';
+            });
+            
+            progressContainer.addEventListener('mouseout', function() {
+                progressHover.style.display = 'none';
+            });
+            
+            // 音量コントロール
+            volumeSlider.addEventListener('input', function() {
+                videoPlayer.volume = volumeSlider.value;
+                updateVolumeIcon();
+            });
+            
+            volumeButton.addEventListener('click', function() {
+                if (videoPlayer.volume > 0) {
+                    videoPlayer.dataset.lastVolume = videoPlayer.volume;
+                    videoPlayer.volume = 0;
+                    volumeSlider.value = 0;
+                } else {
+                    videoPlayer.volume = videoPlayer.dataset.lastVolume || 1;
+                    volumeSlider.value = videoPlayer.volume;
+                }
+                updateVolumeIcon();
+            });
+            
+            function updateVolumeIcon() {
+                if (videoPlayer.volume > 0.7) {
+                    volumeIcon.className = 'fas fa-volume-up';
+                } else if (videoPlayer.volume > 0) {
+                    volumeIcon.className = 'fas fa-volume-down';
+                } else {
+                    volumeIcon.className = 'fas fa-volume-mute';
+                }
+            }
+            
+            // 設定メニューの表示/非表示
+            settingsButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                settingsMenu.classList.toggle('active');
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (!settingsMenu.contains(e.target) && e.target !== settingsButton) {
+                    settingsMenu.classList.remove('active');
+                }
+            });
+            
+            // 再生速度の設定
+            playbackSpeed.addEventListener('click', function() {
+                currentSpeedIndex = (currentSpeedIndex + 1) % speedOptions.length;
+                const newSpeed = speedOptions[currentSpeedIndex];
+                videoPlayer.playbackRate = newSpeed;
+                
+                const speedText = newSpeed === 1.0 ? '通常' : newSpeed + 'x';
+                playbackSpeed.querySelector('span:last-child').textContent = speedText;
+            });
+            
+            // ループ設定の切り替え
+            loopVideo.addEventListener('click', function() {
+                videoPlayer.loop = !videoPlayer.loop;
+                const loopText = videoPlayer.loop ? 'オン' : 'オフ';
+                loopVideo.querySelector('span:last-child').textContent = loopText;
+            });
+            
+            // フルスクリーンモード
+            fullscreenButton.addEventListener('click', function() {
+                toggleFullScreen();
+            });
+            
+            function toggleFullScreen() {
+                if (!document.fullscreenElement) {
+                    if (videoContainer.requestFullscreen) {
+                        videoContainer.requestFullscreen();
+                    } else if (videoContainer.mozRequestFullScreen) {
+                        videoContainer.mozRequestFullScreen();
+                    } else if (videoContainer.webkitRequestFullscreen) {
+                        videoContainer.webkitRequestFullscreen();
+                    } else if (videoContainer.msRequestFullscreen) {
+                        videoContainer.msRequestFullscreen();
+                    }
+                    fullscreenIcon.className = 'fas fa-compress';
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                    fullscreenIcon.className = 'fas fa-expand';
+                }
+            }
+            
+            document.addEventListener('fullscreenchange', updateFullscreenButton);
+            document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+            document.addEventListener('mozfullscreenchange', updateFullscreenButton);
+            document.addEventListener('MSFullscreenChange', updateFullscreenButton);
+            
+            function updateFullscreenButton() {
+                if (document.fullscreenElement) {
+                    fullscreenIcon.className = 'fas fa-compress';
+                } else {
+                    fullscreenIcon.className = 'fas fa-expand';
+                }
+            }
+            
+            // コントロールの表示/非表示 (モバイル対応)
+            videoContainer.addEventListener('click', function() {
+                const controls = document.getElementById('videoControls');
+                controls.style.opacity = '1';
+                
+                clearTimeout(videoContainer.dataset.controlsTimer);
+                
+                videoContainer.dataset.controlsTimer = setTimeout(function() {
+                    if (!videoPlayer.paused) {
+                        controls.style.opacity = '0';
+                    }
+                }, 3000);
+            });
+            
+            // 時間フォーマット (秒から MM:SS 形式に変換)
+            function formatTime(seconds) {
+                seconds = Math.floor(seconds);
+                const minutes = Math.floor(seconds / 60);
+                seconds = seconds % 60;
+                
+                return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+            }
+        });
+    </script>
+</body>
+</html>
