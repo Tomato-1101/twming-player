@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-    <title>Twitter動画プレイヤー</title>
+    <title>YouTube風 Twitter動画プレイヤー</title>
     <style>
         body {
             font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
@@ -464,7 +464,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Twitter動画プレイヤー</h1>
+        <h1>YouTube風 Twitter動画プレイヤー</h1>
         
         <div class="input-container">
             <input type="text" id="urlInput" placeholder="video.twimg.comのURLを入力してください" />
@@ -537,6 +537,10 @@
                         <i class="fas fa-desktop"></i>
                         <span>PCでダウンロード</span>
                     </div>
+                    <div class="download-item" id="pcOpenTab">
+                        <i class="fas fa-external-link-alt"></i>
+                        <span>PCで新しいタブで開く</span>
+                    </div>
                     <div class="download-item" id="mobileDownload">
                         <i class="fas fa-mobile-alt"></i>
                         <span>スマホでダウンロード</span>
@@ -560,6 +564,7 @@
             const downloadButton = document.getElementById('downloadButton');
             const downloadMenu = document.getElementById('downloadMenu');
             const pcDownload = document.getElementById('pcDownload');
+            const pcOpenTab = document.getElementById('pcOpenTab');
             const mobileDownload = document.getElementById('mobileDownload');
             
             // プレイヤー操作要素
@@ -878,22 +883,65 @@
                 }
                 
                 try {
-                    // ダウンロード用のaタグを作成
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = videoPlayer.src;
-                    downloadLink.download = 'twitter_video_' + new Date().getTime() + '.mp4';
-                    downloadLink.style.display = 'none';
+                    // Fetch APIを使用して動画データを取得
+                    fetch(videoPlayer.src)
+                        .then(response => response.blob())
+                        .then(blob => {
+                            // Blobオブジェクトを使用してURLを作成
+                            const blobUrl = URL.createObjectURL(blob);
+                            
+                            // ダウンロード用のaタグを作成
+                            const downloadLink = document.createElement('a');
+                            downloadLink.href = blobUrl;
+                            downloadLink.download = 'twitter_video_' + new Date().getTime() + '.mp4';
+                            downloadLink.style.display = 'none';
+                            
+                            // ダウンロードを開始
+                            document.body.appendChild(downloadLink);
+                            downloadLink.click();
+                            
+                            // クリーンアップ
+                            setTimeout(() => {
+                                document.body.removeChild(downloadLink);
+                                URL.revokeObjectURL(blobUrl);
+                            }, 100);
+                            
+                            // メニューを閉じる
+                            downloadMenu.classList.remove('active');
+                        })
+                        .catch(error => {
+                            console.error('ダウンロードエラー:', error);
+                            showError('ダウンロードできませんでした。ブラウザのセキュリティ設定またはCORSポリシーにより制限されている可能性があります。');
+                        });
+                } catch (error) {
+                    console.error('ダウンロードエラー:', error);
+                    showError('ダウンロードできませんでした。ブラウザのセキュリティ設定を確認してください。');
+                }
+            });
+            
+            // PCで新しいタブで開く
+            pcOpenTab.addEventListener('click', function() {
+                if (!videoPlayer.src) {
+                    return;
+                }
+                
+                try {
+                    // 新しいタブで動画を開く
+                    const newTab = window.open(videoPlayer.src, '_blank');
                     
-                    // ダウンロードを開始
-                    document.body.appendChild(downloadLink);
-                    downloadLink.click();
-                    document.body.removeChild(downloadLink);
+                    if (newTab) {
+                        setTimeout(function() {
+                            alert('新しいタブで動画が開きました。右クリックして「名前を付けて動画を保存」を選択すると保存できます。');
+                        }, 500);
+                    } else {
+                        alert('新しいタブでビデオを開けませんでした。ポップアップブロッカーを無効にしてください。');
+                    }
                     
                     // メニューを閉じる
                     downloadMenu.classList.remove('active');
                 } catch (error) {
-                    console.error('ダウンロードエラー:', error);
-                    showError('ダウンロードできませんでした。ブラウザのセキュリティ設定を確認してください。');
+                    console.error('タブを開く際のエラー:', error);
+                    showError('新しいタブを開けませんでした。ブラウザのセキュリティ設定を確認してください。');
                 }
             });
             
