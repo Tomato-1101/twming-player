@@ -537,13 +537,13 @@
                         <i class="fas fa-desktop"></i>
                         <span>PCでダウンロード</span>
                     </div>
-                    <div class="download-item" id="pcOpenTab">
-                        <i class="fas fa-external-link-alt"></i>
-                        <span>PCで新しいタブで開く</span>
+                    <div class="download-item" id="iOSDownload">
+                        <i class="fab fa-apple"></i>
+                        <span>iPhoneでダウンロード</span>
                     </div>
-                    <div class="download-item" id="mobileDownload">
-                        <i class="fas fa-mobile-alt"></i>
-                        <span>スマホでダウンロード</span>
+                    <div class="download-item" id="androidDownload">
+                        <i class="fab fa-android"></i>
+                        <span>Androidでダウンロード</span>
                     </div>
                 </div>
             </div>
@@ -564,8 +564,8 @@
             const downloadButton = document.getElementById('downloadButton');
             const downloadMenu = document.getElementById('downloadMenu');
             const pcDownload = document.getElementById('pcDownload');
-            const pcOpenTab = document.getElementById('pcOpenTab');
-            const mobileDownload = document.getElementById('mobileDownload');
+            const iOSDownload = document.getElementById('iOSDownload');
+            const androidDownload = document.getElementById('androidDownload');
             
             // プレイヤー操作要素
             const playPauseButton = document.getElementById('playPauseButton');
@@ -919,34 +919,159 @@
                 }
             });
             
-            // PCで新しいタブで開く
-            pcOpenTab.addEventListener('click', function() {
+            // iPhone用ダウンロード
+            iOSDownload.addEventListener('click', function() {
                 if (!videoPlayer.src) {
                     return;
                 }
                 
                 try {
-                    // 新しいタブで動画を開く
-                    const newTab = window.open(videoPlayer.src, '_blank');
+                    // 動画URLをコピーするためのモーダルを表示
+                    const videoUrl = videoPlayer.src;
                     
-                    if (newTab) {
-                        setTimeout(function() {
-                            alert('新しいタブで動画が開きました。右クリックして「名前を付けて動画を保存」を選択すると保存できます。');
-                        }, 500);
-                    } else {
-                        alert('新しいタブでビデオを開けませんでした。ポップアップブロッカーを無効にしてください。');
-                    }
+                    // モーダルを作成
+                    const modal = document.createElement('div');
+                    modal.style.position = 'fixed';
+                    modal.style.top = '0';
+                    modal.style.left = '0';
+                    modal.style.width = '100%';
+                    modal.style.height = '100%';
+                    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                    modal.style.zIndex = '1000';
+                    modal.style.display = 'flex';
+                    modal.style.flexDirection = 'column';
+                    modal.style.alignItems = 'center';
+                    modal.style.justifyContent = 'center';
+                    modal.style.padding = '20px';
+                    
+                    // モーダルの内容
+                    const content = document.createElement('div');
+                    content.style.backgroundColor = 'white';
+                    content.style.borderRadius = '12px';
+                    content.style.padding = '20px';
+                    content.style.maxWidth = '500px';
+                    content.style.width = '90%';
+                    content.style.maxHeight = '80%';
+                    content.style.overflowY = 'auto';
+                    
+                    // タイトル
+                    const title = document.createElement('h2');
+                    title.textContent = 'iPhoneでのダウンロード方法';
+                    title.style.color = '#1DA1F2';
+                    title.style.marginTop = '0';
+                    
+                    // 説明テキスト
+                    const instructions = document.createElement('div');
+                    instructions.innerHTML = `
+                        <p><strong>方法1: Safariブラウザを使用</strong></p>
+                        <ol>
+                            <li>下のリンクをタップして動画を開きます</li>
+                            <li>画面下部の「共有」ボタン（四角から上向き矢印のアイコン）をタップ</li>
+                            <li>「Filesに保存」を選択</li>
+                            <li>保存場所を選択して「保存」をタップ</li>
+                        </ol>
+                        <p><strong>方法2: ブラウザの「ファイルに追加」機能を使用</strong></p>
+                        <ol>
+                            <li>下のリンクを長押し</li>
+                            <li>「リンク先のコンテンツをダウンロード」または「ファイルに追加」を選択</li>
+                        </ol>
+                        <p><strong>方法3: URLをコピーして専用アプリで開く</strong></p>
+                        <ol>
+                            <li>下の「URLをコピー」ボタンをタップ</li>
+                            <li>動画ダウンロード用の別アプリ（例：Documents by Readdle）で開く</li>
+                        </ol>
+                    `;
+                    instructions.style.marginBottom = '20px';
+                    instructions.style.lineHeight = '1.5';
+                    
+                    // 動画リンク
+                    const linkContainer = document.createElement('div');
+                    linkContainer.style.backgroundColor = '#f7f9fa';
+                    linkContainer.style.padding = '10px';
+                    linkContainer.style.borderRadius = '8px';
+                    linkContainer.style.marginBottom = '20px';
+                    
+                    const videoLink = document.createElement('a');
+                    videoLink.href = videoUrl;
+                    videoLink.textContent = '動画を開く（タップまたは長押し）';
+                    videoLink.style.color = '#1DA1F2';
+                    videoLink.style.display = 'block';
+                    videoLink.style.textAlign = 'center';
+                    videoLink.style.padding = '10px';
+                    videoLink.style.textDecoration = 'none';
+                    videoLink.style.fontWeight = 'bold';
+                    
+                    linkContainer.appendChild(videoLink);
+                    
+                    // URLをコピーボタン
+                    const copyButton = document.createElement('button');
+                    copyButton.textContent = 'URLをコピー';
+                    copyButton.style.backgroundColor = '#1DA1F2';
+                    copyButton.style.color = 'white';
+                    copyButton.style.border = 'none';
+                    copyButton.style.borderRadius = '50px';
+                    copyButton.style.padding = '10px 20px';
+                    copyButton.style.cursor = 'pointer';
+                    copyButton.style.fontWeight = 'bold';
+                    copyButton.style.display = 'block';
+                    copyButton.style.margin = '0 auto 20px';
+                    
+                    copyButton.addEventListener('click', function() {
+                        navigator.clipboard.writeText(videoUrl).then(function() {
+                            copyButton.textContent = 'コピーしました！';
+                            setTimeout(function() {
+                                copyButton.textContent = 'URLをコピー';
+                            }, 2000);
+                        }).catch(function() {
+                            alert('URLのコピーに失敗しました。');
+                        });
+                    });
+                    
+                    // 閉じるボタン
+                    const closeButton = document.createElement('button');
+                    closeButton.textContent = '閉じる';
+                    closeButton.style.backgroundColor = '#e1e8ed';
+                    closeButton.style.color = '#333';
+                    closeButton.style.border = 'none';
+                    closeButton.style.borderRadius = '50px';
+                    closeButton.style.padding = '10px 20px';
+                    closeButton.style.cursor = 'pointer';
+                    closeButton.style.fontWeight = 'bold';
+                    closeButton.style.display = 'block';
+                    closeButton.style.margin = '0 auto';
+                    
+                    closeButton.addEventListener('click', function() {
+                        document.body.removeChild(modal);
+                    });
+                    
+                    // モーダルに内容を追加
+                    content.appendChild(title);
+                    content.appendChild(instructions);
+                    content.appendChild(linkContainer);
+                    content.appendChild(copyButton);
+                    content.appendChild(closeButton);
+                    modal.appendChild(content);
+                    
+                    // モーダル外クリックで閉じる
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            document.body.removeChild(modal);
+                        }
+                    });
+                    
+                    // モーダルを表示
+                    document.body.appendChild(modal);
                     
                     // メニューを閉じる
                     downloadMenu.classList.remove('active');
                 } catch (error) {
-                    console.error('タブを開く際のエラー:', error);
-                    showError('新しいタブを開けませんでした。ブラウザのセキュリティ設定を確認してください。');
+                    console.error('モーダル作成エラー:', error);
+                    showError('ダウンロードヘルパーを表示できませんでした。');
                 }
             });
             
-            // モバイルでのダウンロード（新しいタブで開いてから長押し保存）
-            mobileDownload.addEventListener('click', function() {
+            // Android用ダウンロード
+            androidDownload.addEventListener('click', function() {
                 if (!videoPlayer.src) {
                     return;
                 }
@@ -955,10 +1080,10 @@
                     // 新しいタブで動画を開く
                     const newTab = window.open(videoPlayer.src, '_blank');
                     
-                    // モバイルでの保存方法のアラート
+                    // Android保存方法のアラート
                     if (newTab) {
                         setTimeout(function() {
-                            alert('新しいタブで動画が開きました。画面を長押しして「ビデオを保存」を選択してください。');
+                            alert('新しいタブで動画が開きました。画面を長押しして「動画を保存」を選択してください。');
                         }, 1000);
                     } else {
                         alert('新しいタブでビデオを開けませんでした。ポップアップブロッカーを無効にしてください。');
